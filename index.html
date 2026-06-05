@@ -141,7 +141,7 @@ function showStatus(msg, type) {
   el.className = type;
 }
 
-  // 鏈嶅姟鍣ㄦā寮忔娴?  const isServer = window.location.protocol === "http:" || window.location.protocol === "https:";
+  // 鏈嶅姟鍣ㄦā寮忔娴?  const isServer = false;
   const statusDiv = document.getElementById("connectionStatus");
   if (isServer) {
     statusDiv.innerHTML = "鉁?鏈嶅姟鍣ㄦā寮?鈥?澶氱數鑴戝叡浜暟鎹?(" + window.location.host + ")";
