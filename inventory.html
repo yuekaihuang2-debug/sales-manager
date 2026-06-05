@@ -1,0 +1,1087 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>搴撳瓨绠＄悊</title>
+<link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+  <script src="js/template.js"></script>
+  </head>
+<body>
+<div class="navbar">
+  <span class="brand">馃摝 搴撳瓨绠＄悊</span>
+  <a href="index.html">棣栭〉</a>
+  <a href="inventory.html" class="active">搴撳瓨绠＄悊</a>
+  <a href="sales.html">姣忔棩閿€閲?/a>
+</div>
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <span>馃彧 搴楅摵绠＄悊</span>
+      <div class="store-selector">
+        <select id="storeSelect" class="form-control" style="width:auto;" onchange="switchStore()"></select>
+        <button class="btn btn-primary btn-sm" onclick="showAddStore()">+ 鏂板缓搴楅摵</button>
+        <button class="btn btn-outline btn-sm" onclick="showEditStore()">鉁忥笍 閲嶅懡鍚?/button>
+      </div>
+    </div>
+  </div>
+  <!-- 鍐呴〉鏍囩鍒囨崲 -->
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="switchTab('tab-products')">馃搵 浜у搧绠＄悊</button>
+    <button class="sub-tab" onclick="switchTab('tab-shipments')">馃殮 鍑鸿揣绠＄悊</button>
+    <button class="sub-tab" onclick="switchTab('tab-stock')">馃搳 鎬诲簱瀛樿〃</button>
+  </div>
+
+<div class="tab-content active" id="tab-products">
+<div class="card">
+    <div class="card-header">
+      <span>馃搵 浜у搧绠＄悊</span>
+      <button class="btn btn-success btn-sm" onclick="showAddProduct()">+ 娣诲姞浜у搧</button>
+      
+    </div>
+    <div class="card-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>鍥剧墖</th><th>浜у搧ID</th><th>SKU</th><th>浜у搧鍚嶇О</th><th>鎴愭湰</th><th>澶寸▼鎴愭湰</th>
+            <th>棰勭害绫诲瀷</th><th>棰勭害鏃ユ湡</th><th>鎿嶄綔</th>
+          </tr></thead>
+          <tbody id="productTable"></tbody>
+        </table>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+<div class="tab-content" id="tab-shipments">
+<div class="card">
+    <div class="card-header">
+      <span>馃殮 鍑鸿揣绠＄悊</span>
+      <button class="btn btn-success btn-sm" onclick="showAddShipment()">+ 鏂板缓鍑鸿揣鍗?/button>
+      <div class="form-inline" style="margin-left:auto;">
+        <input class="form-control input-md" id="boxSearchInput" placeholder="杈撳叆绠卞彿鏌ユ壘" style="width:140px;" onkeydown="if(event.key==='Enter')searchBoxNumber()">
+        <button class="btn btn-outline btn-sm" onclick="searchBoxNumber()">馃攳 鏌ユ壘</button>
+      </div>
+    </div>
+    <div class="card-body" id="shipmentArea"></div>
+  </div>
+</div>
+<div class="tab-content" id="tab-stock">
+<div class="card">
+    <div class="card-header">
+      <span>馃搳 鎬诲簱瀛樿〃</span>
+      <div class="form-inline">
+        <select id="stockStatusFilter" class="form-control" style="width:auto;" onchange="renderStockTable()">
+          <option value="all">鍏ㄩ儴鐘舵€?/option>
+          <option value="logistics">鐗╂祦涓?/option>
+          <option value="arrived">宸插埌浠?/option>
+          <option value="full">Full璋冩嫧</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="table-wrap"><table id="stockTable"><thead><tr>
+        <th>鍥剧墖</th><th>浜у搧ID</th><th>SKU</th><th>浜у搧鍚嶇О</th><th>鎬绘暟閲?/th><th>鎬绘垚鏈?/th><th>鎿嶄綔</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
+<!-- === 寮圭獥鍖哄煙 === -->
+
+<!-- 鏂板缓搴楅摵寮圭獥 -->
+<div class="modal-overlay" id="storeModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header"><span id="storeModalTitle">鏂板缓搴楅摵</span><button class="close" onclick="closeModal(&quot;storeModal&quot;)">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>搴楅摵鍚嶇О</label><input class="form-control" id="storeNameInput" placeholder="杈撳叆搴楅摵鍚嶇О"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;storeModal&quot;)">鍙栨秷</button>
+      <button class="btn btn-primary" onclick="saveStore()">淇濆瓨</button>
+    </div>
+  </div>
+</div>
+
+<!-- 娣诲姞浜у搧寮圭獥 -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header"><span id="productModalTitle">娣诲姞浜у搧</span><button class="close" onclick="closeModal(&quot;productModal&quot;)">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row-2">
+        <div class="form-group"><label>浜у搧ID</label><input class="form-control" id="prodProductId" placeholder="杈撳叆浜у搧ID" oninput="onProductFieldChange()"></div>
+        <div class="form-group"><label>SKU</label><input class="form-control" id="prodSku" placeholder="杈撳叆SKU" oninput="onProductFieldChange()"></div>
+      </div>
+      <div class="form-group"><label>浜у搧鍚嶇О</label><input class="form-control" id="prodName" placeholder="杈撳叆浜у搧鍚嶇О" oninput="onProductFieldChange()"></div>      <div class="form-row-2">
+        <div class="form-group"><label>浜у搧鑻辨枃鍝佸悕</label><input class="form-control" id="prodEnglishName" placeholder="鑻辨枃鍝佸悕"></div>
+        <div class="form-group"><label>浜у搧鏉愯川</label><input class="form-control" id="prodMaterial" placeholder="濡?濉戞枡/閲戝睘/甯冩枡"></div>
+      </div>
+      <div class="form-group"><label>浜у搧鍥剧墖</label>浜у搧鍥剧墖</label>
+        <input class="form-control" id="prodImageInput" type="file" accept="image/*" onchange="previewProductImage()" style="padding:4px;">
+        <div id="prodImagePreview" style="margin-top:4px;max-width:120px;max-height:120px;display:none;"><img id="prodImagePreviewImg" style="width:100%;height:auto;border-radius:4px;border:1px solid #ddd;"></div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label>鎴愭湰</label><input class="form-control" id="prodCost" type="number" step="0.01" placeholder="0"></div>
+        <div class="form-group"><label>澶寸▼鎴愭湰</label><input class="form-control" id="prodHeadCost" type="number" step="0.01" placeholder="0"></div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group"><label>棰勭害绫诲瀷</label><select class="form-control" id="prodApptType"><option value="">鏃?/option><option value="棰勭害鍑犲彿">棰勭害鍑犲彿</option><option value="涓婃灦">涓婃灦</option></select></div>
+        <div class="form-group"><label>棰勭害鏃ユ湡</label><input class="form-control" id="prodApptDate" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;productModal&quot;)">鍙栨秷</button>
+      <button class="btn btn-primary" id="productSaveBtn" onclick="saveProduct()">淇濆瓨</button>
+    </div>
+  </div>
+</div>
+
+<!-- 鏂板缓鍑鸿揣鍗曞脊绐?-->
+<div class="modal-overlay" id="shipmentModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><span>鏂板缓鍑鸿揣鍗?/span><button class="close" onclick="closeModal(&quot;shipmentModal&quot;)">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>鍑鸿揣鏃ユ湡</label><input class="form-control" id="shipDate" type="date"></div>
+      <div class="form-group"><label>澶囨敞</label><input class="form-control" id="shipNotes" placeholder="鍙€夊娉?></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;shipmentModal&quot;)">鍙栨秷</button>
+      <button class="btn btn-primary" onclick="saveShipment()">鍒涘缓</button>
+    </div>
+  </div>
+</div>
+
+<!-- 娣诲姞绠卞瓙寮圭獥 -->
+<div class="modal-overlay" id="boxModal">
+  <div class="modal" style="max-width:650px;">
+    <div class="modal-header"><span id="boxModalTitle">娣诲姞绠卞瓙</span><button class="close" onclick="closeModal(&quot;boxModal&quot;)">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row-4">
+        <div class="form-group"><label>绠卞彿</label><input class="form-control" id="boxNumber" placeholder="濡?CTN1"></div>
+        <div class="form-group"><label>绠辨暟</label><input class="form-control" id="boxCount" type="number" min="1" value="1"></div>
+        <div class="form-group"><label>瑁呯鏁?/label><input class="form-control" id="packingCount" type="number" min="1" value="1"></div>
+        <div class="form-group"><label>绠辫 (闀縳瀹絰楂?cm)</label><input class="form-control" id="boxSpec" placeholder="濡?50x40x30" oninput="calcBoxCbm()"></div>
+      </div>
+      <div class="form-row-4">
+        <div class="form-group"><label>閲嶉噺 (kg)</label><input class="form-control" id="boxWeight" type="number" step="0.1" placeholder="0" oninput="calcBoxCbm()"></div>
+        <div class="form-group"><label>鍗曠鏂规暟 (CBM)</label><input class="form-control" id="boxCbm" type="number" step="0.001" readonly></div>
+        <div class="form-group"><label>鎬绘柟鏁?(CBM)</label><input class="form-control" id="boxTotalCbm" type="number" step="0.001" readonly></div>
+        <div class="form-group"><label>鎬婚噸閲?(kg)</label><input class="form-control" id="boxTotalWeight" type="number" step="0.1" readonly></div>
+      </div>
+      <div class="form-group"><label>绠遍害</label><input class="form-control" id="boxLabel" type="text" placeholder="杈撳叆绠遍害鏍囪锛堝彲杈撳叆鏁板瓧鍜屾枃瀛楋級"></div>
+      <div class="form-group"><label>鐘舵€?/label>
+        <select class="form-control" id="boxStatus" onchange="onBoxStatusChange()">
+          <option value="logistics">鐗╂祦涓?/option>
+          <option value="arrived">宸插埌浠?/option>
+          <option value="full">Full璋冩嫧</option>
+        </select>
+      </div>
+      <div class="form-group" id="logisticsGroup"><label>鐗╂祦鍏徃</label>
+        <input class="form-control" id="boxLogistics" placeholder="蹇呭～锛岃緭鍏ョ墿娴佸叕鍙稿悕绉?>
+        <div id="logisticsHint" class="hint" style="color:#e74c3c;"></div>
+      </div>
+      <div class="form-group" id="transferGroup" style="display:none;">
+        <label>璋冩嫧鍒板簵閾?/label>
+        <select class="form-control" id="transferStoreSelect"></select>
+        <div class="alert alert-warning" style="margin-top:6px;font-size:12px;">璋冩嫧鍚庨渶瑕佸湪鐩爣搴楅摵淇敼浜у搧ID銆丼KU銆佷骇鍝佸悕绉?/div>
+      </div>
+      <div class="form-group"><label>鍏宠仈浜у搧</label>
+        <div class="form-inline" style="margin-bottom:4px;">
+          <select class="form-control" id="boxProductSelect" style="min-width:180px;"></select>
+          <input class="form-control input-sm" id="boxProductQty" type="number" min="1" value="1" placeholder="鏁伴噺" style="width:70px;">
+          <button class="btn btn-primary btn-sm" onclick="addBoxProduct()">+ 娣诲姞</button>
+        </div>
+        <table class="mini-table" style="width:100%;"><thead><tr><th>浜у搧</th><th>鏁伴噺</th><th>鎿嶄綔</th></tr></thead>
+          <tbody id="boxProductList"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;boxModal&quot;)">鍙栨秷</button>
+      <button class="btn btn-primary" onclick="saveBox()">淇濆瓨绠卞瓙</button>
+    </div>
+  </div>
+</div>
+<!-- 鏌ユ壘缁撴灉寮圭獥 -->
+<div class="modal-overlay" id="searchResultModal">
+  <div class="modal" style="max-width:850px;">
+    <div class="modal-header"><span id="searchResultTitle">鏌ユ壘缁撴灉</span><button class="close" onclick="closeModal(&quot;searchResultModal&quot;)">&times;</button></div>
+    <div class="modal-body" id="searchResultBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;searchResultModal&quot;)">鍏抽棴</button>
+    </div>
+  </div>
+</div>
+<!-- 缂栬緫绠遍害寮圭獥 -->
+<div class="modal-overlay" id="labelModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><span>绠遍害淇敼鍘嗗彶</span><button class="close" onclick="closeModal(&quot;labelModal&quot;)">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-inline" style="margin-bottom:8px;">
+        <input class="form-control" id="labelNewInput" placeholder="杈撳叆鏂扮楹? style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="updateBoxLabel()">鏇存柊</button>
+      </div>
+      <table style="width:100%;"><thead><tr><th>绠遍害</th><th>淇敼鏃堕棿</th></tr></thead>
+        <tbody id="labelHistoryList"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;labelModal&quot;)">鍏抽棴</button>
+    </div>
+  </div>
+</div>
+<!-- 浜у搧搴撳瓨寮圭獥 -->
+<div class="modal-overlay" id="stockDetailModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header"><span id="stockDetailTitle">浜у搧搴撳瓨璇︽儏</span><button class="close" onclick="closeModal(&quot;stockDetailModal&quot;)">&times;</button></div>
+    <div class="modal-body" id="stockDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;stockDetailModal&quot;)">鍏抽棴</button>
+    </div>
+  </div>
+</div>
+<script src="js/cloud.js"></script>
+<script src="js/db.js"></script>
+<script>
+// ===== 鐘舵€佸彉閲?=====
+let currentStoreId = null;
+let editingProductId = null;
+let editingShipmentId = null;
+let editingBoxId = null;
+let boxProductsTemp = [];
+let editingStoreId = null;
+
+// ===== 鍒濆鍖?=====
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadStores();
+  document.getElementById("shipDate").value = todayStr();
+  const stored = localStorage.getItem("lastStoreId");
+  if (stored) { currentStoreId = parseInt(stored); }
+  if (!currentStoreId) {
+    const stores = await dbGetAll("stores");
+    if (stores.length > 0) currentStoreId = stores[0].id;
+  }
+  await switchStore();
+});
+
+// ===== 搴楅摵绠＄悊 =====
+async function loadStores() {
+  const stores = await dbGetAll("stores");
+  const sel = document.getElementById("storeSelect");
+  sel.innerHTML = stores.map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+  if (stores.length === 0) {
+    sel.innerHTML = "<option value=\"\">-- 璇峰厛鍒涘缓搴楅摵 --</option>";
+  }
+}
+
+async function switchStore() {
+  const sel = document.getElementById("storeSelect");
+  currentStoreId = parseInt(sel.value);
+  if (!currentStoreId) return;
+  localStorage.setItem("lastStoreId", currentStoreId);
+  await Promise.all([renderProducts(), renderShipments(), renderStockTable()]);
+}
+
+function showAddStore() {
+  editingStoreId = null;
+  document.getElementById("storeModalTitle").textContent = "鏂板缓搴楅摵";
+  document.getElementById("storeNameInput").value = "";
+  openModal("storeModal");
+}
+
+function showEditStore() {
+  if (!currentStoreId) return alert("璇峰厛閫夋嫨搴楅摵");
+  editingStoreId = currentStoreId;
+  document.getElementById("storeModalTitle").textContent = "閲嶅懡鍚嶅簵閾?;
+  const sel = document.getElementById("storeSelect");
+  document.getElementById("storeNameInput").value = sel.options[sel.selectedIndex].text;
+  openModal("storeModal");
+}
+
+async function saveStore() {
+  const name = document.getElementById("storeNameInput").value.trim();
+  if (!name) return alert("璇疯緭鍏ュ簵閾哄悕绉?);
+  if (editingStoreId) {
+    const store = await dbGet("stores", editingStoreId);
+    store.name = name;
+    await dbPut("stores", store);
+  } else {
+    await dbAdd("stores", { name });
+  }
+  closeModal("storeModal");
+  await loadStores();
+  document.getElementById("storeSelect").value = currentStoreId || "";
+}
+
+// ===== 浜у搧绠＄悊 =====
+async function renderProducts() {
+  const tbody = document.getElementById("productTable");
+  if (!currentStoreId) { tbody.innerHTML = "<tr><td colspan=\"9\" class=\"empty-state\">璇峰厛閫夋嫨搴楅摵</td></tr>"; return; }
+  const products = await getStoreProducts(currentStoreId);
+  if (products.length === 0) {
+    tbody.innerHTML = "<tr><td colspan=\"9\"><div class=\"empty-state\"><div class=\"icon\">馃摝</div>鏆傛棤浜у搧锛岀偣鍑绘坊鍔犱骇鍝佸紑濮?/div></td></tr>";
+    return;
+  }
+  tbody.innerHTML = products.map(p => `
+    <tr>
+      <td>${p.image ? `<img src="${escHtml(p.image)}" class="prod-img" onclick="showProductImage(\`${escHtml(p.image)}\`)" style="cursor:pointer;">` : "-"}</td>
+      <td>${escHtml(p.productId||"")}</td>
+      <td>${escHtml(p.sku||"")}</td>
+      <td>${escHtml(p.name||"")}</td>
+      <td>${p.cost ? "楼"+p.cost : "-"}</td>
+      <td>${p.headCost ? "楼"+p.headCost : "-"}</td>
+      <td>${p.appointmentType||"-"}</td>
+      <td>${p.appointmentDate||"-"}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="editProduct(${p.id})">鉁忥笍</button> <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">馃棏</button></td>
+    </tr>
+  `).join("");
+}function previewProductImage() {
+  const input = document.getElementById("prodImageInput");
+  const preview = document.getElementById("prodImagePreview");
+  const img = document.getElementById("prodImagePreviewImg");
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      img.src = e.target.result;
+      preview.style.display = "block";
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    preview.style.display = "none";
+    img.src = "";
+  }
+}
+
+function showProductImage(src) {
+  const w = window.open("", "_blank", "width=600,height=600");
+  if (w) {
+    w.document.write("<img src=\"" + escHtml(src) + "\" style=\"max-width:100%;height:auto;\">");
+  }
+}
+function showAddProduct() {
+  if (!currentStoreId) return alert("璇峰厛閫夋嫨搴楅摵");
+  editingProductId = null;
+  document.getElementById("productModalTitle").textContent = "娣诲姞浜у搧";
+  "prodProductId prodSku prodName prodCost prodHeadCost prodApptType prodApptDate".split(" ").forEach(id => document.getElementById(id).value = "");
+  openModal("productModal");
+}
+
+async function editProduct(id) {
+  const p = await dbGet("products", id);
+  if (!p) return;
+  editingProductId = id;
+  document.getElementById("productModalTitle").textContent = "缂栬緫浜у搧";
+  document.getElementById("prodProductId").value = p.productId || "";
+  document.getElementById("prodSku").value = p.sku || "";
+  document.getElementById("prodName").value = p.name || "";
+  document.getElementById("prodCost").value = p.cost || "";
+  document.getElementById("prodHeadCost").value = p.headCost || "";
+  document.getElementById("prodApptType").value = p.appointmentType || "";
+  document.getElementById("prodApptDate").value = p.appointmentDate || "";
+  document.getElementById("prodEnglishName").value = p.englishName || "";
+  document.getElementById("prodMaterial").value = p.material || "";
+  document.getElementById("prodImageInput").value = "";
+  const preview = document.getElementById("prodImagePreview");
+  const img = document.getElementById("prodImagePreviewImg");
+  if (p.image) {
+    img.src = p.image;
+    preview.style.display = "block";
+  } else {
+    preview.style.display = "none";
+    img.src = "";
+  }
+  openModal("productModal");
+}async function saveProduct() {
+  const productId = document.getElementById("prodProductId").value.trim();
+  const sku = document.getElementById("prodSku").value.trim();
+  const name = document.getElementById("prodName").value.trim();
+  if (!productId || !sku || !name) return alert("浜у搧ID銆丼KU銆佷骇鍝佸悕绉板潎涓哄繀濉?);
+  const data = {
+    storeId: currentStoreId, productId, sku, name,
+    cost: parseFloat(document.getElementById("prodCost").value) || 0,
+    headCost: parseFloat(document.getElementById("prodHeadCost").value) || 0,
+    appointmentType: document.getElementById("prodApptType").value,
+    appointmentDate: document.getElementById("prodApptDate").value,
+    englishName: document.getElementById("prodEnglishName").value.trim(),
+    material: document.getElementById("prodMaterial").value.trim(),
+    image: document.getElementById("prodImagePreviewImg").src || "",
+  };
+  if (data.image === window.location.href || !data.image.startsWith("data:image")) data.image = "";
+  if (editingProductId) {
+    data.id = editingProductId;
+    await dbPut("products", data);
+  } else {
+    await dbAdd("products", data);
+    const list = JSON.parse(localStorage.getItem("newProductsForSales") || "[]");
+    list.push({ storeId: data.storeId, productId: data.productId, sku: data.sku, name: data.name });
+    localStorage.setItem("newProductsForSales", JSON.stringify(list));
+  }
+  closeModal("productModal");
+  await renderProducts();
+  await renderStockTable();
+}async function deleteProduct(id) {
+  if (!confirm("纭畾鍒犻櫎璇ヤ骇鍝侊紵")) return;
+  await dbDelete("products", id);
+  await renderProducts();
+  await renderStockTable();
+}
+
+async function onProductFieldChange() {
+  const pid = document.getElementById("prodProductId").value.trim();
+  const sku = document.getElementById("prodSku").value.trim();
+  const name = document.getElementById("prodName").value.trim();
+  const term = pid || sku || name;
+  if (!term || editingProductId !== null) return;
+  const match = await autoFillProduct(term);
+  if (match) {
+    if (pid && !document.getElementById("prodSku").value) document.getElementById("prodSku").value = match.sku || "";
+    if (sku && !document.getElementById("prodProductId").value) document.getElementById("prodProductId").value = match.productId || "";
+    if (name && !document.getElementById("prodName").value) document.getElementById("prodName").value = match.name || "";
+    if (!document.getElementById("prodCost").value && match.cost) document.getElementById("prodCost").value = match.cost;
+    if (!document.getElementById("prodHeadCost").value && match.headCost) document.getElementById("prodHeadCost").value = match.headCost;
+  }
+}
+
+// ===== 鍑鸿揣绠＄悊 =====
+async function renderShipments() {
+  const area = document.getElementById("shipmentArea");
+  if (!currentStoreId) { area.innerHTML = "<div class=\"empty-state\">璇峰厛閫夋嫨搴楅摵</div>"; return; }
+  const all = await dbGetAll("shipments");
+  const shipments = all.filter(s => s.storeId === currentStoreId && !s.isTransfer).sort((a,b) => b.id - a.id);
+  if (shipments.length === 0) {
+    area.innerHTML = "<div class=\"empty-state\"><div class=\"icon\">馃殮</div>鏆傛棤鍑鸿揣鍗曪紝鐐瑰嚮鏂板缓鍑鸿揣鍗曞紑濮?/div>";
+    return;
+  }
+  let html = "";
+  for (const s of shipments) {
+    const boxes = await getShipmentBoxes(s.id);
+    html += await renderShipmentCard(s, boxes);
+  }
+  area.innerHTML = html;
+}
+
+async function renderShipmentCard(s, boxes) {
+  let totalCbm = 0, totalWeight = 0, totalCbm1 = 0;
+  for (const b of boxes) {
+    totalCbm += (b.cbmPerBox || 0) * (b.boxCount || 1);
+    totalWeight += (b.weight || 0) * (b.boxCount || 1);
+    // 璁＄畻鍚勮竟+1鐨勬€绘柟鏁?
+    let cbm1 = 0;
+    if (b.spec) {
+      const parts = b.spec.split(/[xX脳\*]/).map(x => parseFloat(x.trim()) || 0);
+      if (parts.length === 3) {
+        cbm1 = (parts[0]+1) * (parts[1]+1) * (parts[2]+1) / 1000000;
+      }
+    }
+    totalCbm1 += cbm1 * (b.boxCount || 1);
+  }
+  let allProducts = [];
+  let boxProdNames = {};
+  for (const b of boxes) {
+    const bpList = await getBoxProducts(b.id);
+    const pnames = [];
+    for (const bp of bpList) {
+      const p = await dbGet("products", bp.productId);
+      if (p) {
+        allProducts.push({ ...p, qty: bp.quantity });
+        pnames.push(p.name);
+      }
+    }
+    boxProdNames[b.id] = pnames.join(", ");
+  }
+  const prodMap = {};
+  for (const ap of allProducts) {
+    const key = ap.productId;
+    if (!prodMap[key]) prodMap[key] = { name: ap.name, sku: ap.sku, totalQty: 0 };
+    prodMap[key].totalQty += ap.qty;
+  }
+  const prodSummary = Object.values(prodMap).map(pm => `${pm.name}(${pm.sku})x${pm.totalQty}`).join(", ") || "鏃?;
+  return `<div class="card" id="shipment-${s.id}" style="margin-bottom:12px;border:1px solid #e0e0e0;">
+    <div class="card-header" style="background:#fafafa;">
+      <span>馃摝 鍑鸿揣鍗?#${s.id} 鈥?${s.date}</span>
+      <span style="font-size:12px;color:#999;">${s.notes||""}</span>
+      <button class="btn btn-success btn-sm" onclick="exportShipmentExcel(${s.id})" style="margin-left:auto;">馃摜 瀵煎嚭Excel</button> <button class="btn btn-danger btn-sm" onclick="deleteShipment(${s.id})">鍒犻櫎</button>
+    </div>
+    <div class="card-body">
+      <div class="summary-bar">
+        <span class="item"><span class="label">鎬荤鏁?</span> <span class="value">${boxes.length}</span></span>
+        <span class="item"><span class="label">鎬绘柟鏁?</span> <span class="value">${totalCbm.toFixed(3)} CBM</span></span>
+        <span class="item"><span class="label">瀹為檯鏂规暟(+1cm):</span> <span class="value">${totalCbm1.toFixed(3)} CBM</span></span>
+        <span class="item"><span class="label">鎬婚噸閲?</span> <span class="value">${totalWeight.toFixed(1)} kg</span></span>
+      </div>
+      <div class="table-wrap" style="margin-bottom:8px;">
+        <table style="font-size:12px;"><thead><tr><th>绠卞彿</th><th>浜у搧鍚嶅瓧</th><th>绠辨暟</th><th>瑁呯鏁?/th><th>绠辫</th><th>鍗曠鏂规暟</th><th>鎬绘柟鏁?/th><th>鎬婚噸閲?/th><th>绠遍害</th><th>鐘舵€?/th><th>鐗╂祦鍏徃</th><th>鎿嶄綔</th></tr></thead>
+        <tbody>${boxes.map(b => renderBoxRow(b, boxProdNames[b.id] || "")).join("")}</tbody></table>
+      </div>
+      <div style="font-size:12px;color:#666;"><strong>浜у搧姹囨€?</strong> ${prodSummary}</div>
+      <button class="btn btn-primary btn-sm" onclick="showAddBox(${s.id})" style="margin-top:8px;">+ 娣诲姞绠卞瓙</button>
+    </div></div>`;
+}
+
+function renderBoxRow(b, productNames) {
+  const cls = b.status === "logistics" ? "tag-logistics" : b.status === "arrived" ? "tag-arrived" : "tag-full";
+  const lbl = b.status === "logistics" ? "鐗╂祦涓? : b.status === "arrived" ? "宸插埌浠? : "Full璋冩嫧";
+  return `<tr class="${b.status === "full" ? "status-full" : ""}">
+    <td>${escHtml(b.boxNumber||"")}</td>
+    <td>${escHtml(productNames||"")}</td><td>${b.boxCount||1}</td><td>${b.packingCount||1}</td>
+    <td>${escHtml(b.spec||"")}</td><td>${(b.cbmPerBox||0).toFixed(3)}</td>
+    <td>${((b.cbmPerBox||0)*(b.boxCount||1)).toFixed(3)}</td>
+    <td>${((b.weight||0)*(b.boxCount||1)).toFixed(1)}</td>
+    <td>${escHtml(b.currentLabel||"")} <a href="#" onclick="showLabelHistory(${b.id});return false;" style="font-size:11px;color:#999;">馃摑</a></td>
+    <td><span class="tag ${cls}">${lbl}</span></td>
+    <td>${escHtml(b.logisticsCompany||"")}</td>
+    <td><button class="btn btn-outline btn-sm" onclick="editBox(${b.id})">鉁忥笍</button> <button class="btn btn-danger btn-sm" onclick="deleteBox(${b.id})">馃棏</button></td>
+  </tr>`;
+}
+
+function showAddBox(shipmentId) {
+  if (!currentStoreId) return alert("璇峰厛閫夋嫨搴楅摵");
+  editingShipmentId = shipmentId; editingBoxId = null; boxProductsTemp = [];
+  document.getElementById("boxModalTitle").textContent = "娣诲姞绠卞瓙";
+  "boxNumber boxCount packingCount boxSpec boxWeight boxCbm boxTotalCbm boxTotalWeight boxLabel boxLogistics".split(" ").forEach(id => document.getElementById(id).value = "");
+  document.getElementById("boxCount").value = "1";
+  document.getElementById("packingCount").value = "1";
+  document.getElementById("boxStatus").value = "logistics";
+  document.getElementById("logisticsHint").textContent = "";
+  document.getElementById("transferGroup").style.display = "none";
+  document.getElementById("logisticsGroup").style.display = "block";
+  renderBoxProductList();
+  loadBoxProductOptions();
+  openModal("boxModal");
+}
+
+async function editBox(boxId) {
+  const b = await dbGet("boxes", boxId);
+  if (!b) return;
+  editingBoxId = boxId; editingShipmentId = b.shipmentId;
+  document.getElementById("boxModalTitle").textContent = "缂栬緫绠卞瓙";
+  document.getElementById("boxNumber").value = b.boxNumber || "";
+  document.getElementById("boxCount").value = b.boxCount || 1;
+  document.getElementById("packingCount").value = b.packingCount || 1;
+  document.getElementById("boxSpec").value = b.spec || "";
+  document.getElementById("boxWeight").value = b.weight || "";
+  document.getElementById("boxCbm").value = b.cbmPerBox || "";
+  document.getElementById("boxStatus").value = b.status || "logistics";
+  document.getElementById("boxLogistics").value = b.logisticsCompany || "";
+  document.getElementById("boxLabel").value = b.currentLabel || "";
+  document.getElementById("logisticsHint").textContent = "";
+  calcBoxCbm();
+  onBoxStatusChange();
+  loadBoxProductOptions();
+  boxProductsTemp = [];
+  const bpList = await getBoxProducts(boxId);
+  for (const bp of bpList) {
+    const p = await dbGet("products", bp.productId);
+    boxProductsTemp.push({ productId: bp.productId, name: p ? p.name : "鏈煡", qty: bp.quantity });
+  }
+  renderBoxProductList();
+  openModal("boxModal");
+}
+
+function calcBoxCbm() {
+  const spec = document.getElementById("boxSpec").value.trim();
+  const weight = parseFloat(document.getElementById("boxWeight").value) || 0;
+  const boxCount = parseInt(document.getElementById("boxCount").value) || 1;
+  let cbm = 0;
+  if (spec) {
+    const parts = spec.split(/[xX脳\*]/).map(s => parseFloat(s.trim()) || 0);
+    if (parts.length === 3) cbm = parts[0] * parts[1] * parts[2] / 1000000;
+  }
+  document.getElementById("boxCbm").value = cbm.toFixed(4);
+  document.getElementById("boxTotalCbm").value = (cbm * boxCount).toFixed(4);
+  document.getElementById("boxTotalWeight").value = (weight * boxCount).toFixed(1);
+}
+
+function onBoxStatusChange() {
+  const st = document.getElementById("boxStatus").value;
+  document.getElementById("logisticsGroup").style.display = st === "full" ? "none" : "block";
+  document.getElementById("transferGroup").style.display = st === "full" ? "block" : "none";
+  if (st === "full") {
+    dbGetAll("stores").then(stores => {
+      const sel = document.getElementById("transferStoreSelect");
+      sel.innerHTML = stores.filter(s => s.id !== currentStoreId).map(s => `<option value="${s.id}">${s.name}</option>`).join("");
+    });
+  }
+}
+
+function loadBoxProductOptions() {
+  if (!currentStoreId) return;
+  getStoreProducts(currentStoreId).then(products => {
+    const sel = document.getElementById("boxProductSelect");
+    sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sku})</option>`).join("");
+  });
+}
+
+function addBoxProduct() {
+  const sel = document.getElementById("boxProductSelect");
+  const pid = parseInt(sel.value);
+  const qty = parseInt(document.getElementById("boxProductQty").value) || 1;
+  if (!pid) return;
+  const name = sel.options[sel.selectedIndex].text;
+  const existing = boxProductsTemp.find(bp => bp.productId === pid);
+  if (existing) existing.qty += qty;
+  else boxProductsTemp.push({ productId: pid, name, qty });
+  renderBoxProductList();
+}
+
+function renderBoxProductList() {
+  document.getElementById("boxProductList").innerHTML = boxProductsTemp.map((bp, i) =>
+    `<tr><td>${escHtml(bp.name)}</td><td>${bp.qty}</td><td><button class="btn btn-danger btn-sm" onclick="removeBoxProduct(${i})">鉁?/button></td></tr>`
+  ).join("");
+}
+
+function removeBoxProduct(i) { boxProductsTemp.splice(i, 1); renderBoxProductList(); }
+
+async function saveBox() {
+  const boxNumber = document.getElementById("boxNumber").value.trim();
+  const boxCount = parseInt(document.getElementById("boxCount").value) || 1;
+  const packingCount = parseInt(document.getElementById("packingCount").value) || 1;
+  const spec = document.getElementById("boxSpec").value.trim();
+  const weight = parseFloat(document.getElementById("boxWeight").value) || 0;
+  const cbmPerBox = parseFloat(document.getElementById("boxCbm").value) || 0;
+  const status = document.getElementById("boxStatus").value;
+  const logistics = document.getElementById("boxLogistics").value.trim();
+  const label = document.getElementById("boxLabel").value.trim();
+  const transferSel = document.getElementById("transferStoreSelect");
+  const transferStoreId = transferSel ? transferSel.value : null;
+  if (boxProductsTemp.length === 0) return alert("璇疯嚦灏戞坊鍔犱竴涓骇鍝?);
+  if (status !== "full" && !logistics) {
+    document.getElementById("logisticsHint").textContent = "鈿狅笍 鐗╂祦鍏徃涓哄繀濉」";
+    return;
+  }
+  if (status === "full" && !transferStoreId) return alert("璇烽€夋嫨璋冩嫧鐩爣搴楅摵");
+  const boxData = { shipmentId: editingShipmentId, boxNumber, boxCount, packingCount, spec, weight, cbmPerBox, status, logisticsCompany: logistics, transferToStoreId: status === "full" ? parseInt(transferStoreId) : null, currentLabel: label || "" };
+  let boxId;
+  if (editingBoxId) {
+    boxData.id = editingBoxId; await dbPut("boxes", boxData); boxId = editingBoxId;
+    const oldBp = await getBoxProducts(boxId);
+    for (const obp of oldBp) await dbDelete("box_products", obp.id);
+  } else {
+    boxId = await dbAdd("boxes", boxData);
+  }
+  if (label) await saveBoxLabel(boxId, label);
+  for (const bp of boxProductsTemp) {
+    await dbAdd("box_products", { boxId, productId: bp.productId, quantity: bp.qty });
+  }
+  if (status === "full" && transferStoreId && boxProductsTemp.length > 0) {
+    const firstBp = boxProductsTemp[0];
+    const p = await dbGet("products", firstBp.productId);
+    const newPid = prompt("杈撳叆鐩爣搴楅摵鐨勬柊浜у搧ID:", p ? p.productId : "");
+    const newSku = prompt("杈撳叆鐩爣搴楅摵鐨勬柊SKU:", p ? p.sku : "");
+    const newName = prompt("杈撳叆鐩爣搴楅摵鐨勬柊浜у搧鍚嶇О:", p ? p.name : "");
+    if (newPid && newSku && newName) {
+      await transferProduct(boxId, currentStoreId, parseInt(transferStoreId), firstBp.productId, newPid, newSku, newName);
+    } else alert("璋冩嫧淇℃伅涓嶅畬鏁达紝璇风◢鍚庢墜鍔ㄥ鐞?);
+  }
+  closeModal("boxModal");
+  await renderShipments(); await renderStockTable();
+}
+
+async function deleteBox(id) {
+  if (!confirm("纭畾鍒犻櫎锛?)) return;
+  const bpList = await getBoxProducts(id);
+  for (const bp of bpList) await dbDelete("box_products", bp.id);
+  await dbDelete("boxes", id);
+  await renderShipments(); await renderStockTable();
+}
+
+async function showAddShipment() {
+  if (!currentStoreId) return alert("璇峰厛閫夋嫨搴楅摵");
+  document.getElementById("shipDate").value = todayStr();
+  document.getElementById("shipNotes").value = "";
+  openModal("shipmentModal");
+}
+
+async function saveShipment() {
+  const date = document.getElementById("shipDate").value;
+  const notes = document.getElementById("shipNotes").value.trim();
+  if (!date) return alert("璇烽€夋嫨鏃ユ湡");
+  await dbAdd("shipments", { storeId: currentStoreId, date, notes, totalCbm: 0, totalWeight: 0 });
+  closeModal("shipmentModal");
+  await renderShipments();
+}
+
+async function deleteShipment(id) {
+  if (!confirm("纭畾鍒犻櫎姝ゅ嚭璐у崟鍙婂叾鎵€鏈夌瀛愶紵")) return;
+  const boxes = await getShipmentBoxes(id);
+  for (const b of boxes) {
+    const bpList = await getBoxProducts(b.id);
+    for (const bp of bpList) await dbDelete("box_products", bp.id);
+    await dbDelete("boxes", b.id);
+  }
+  await dbDelete("shipments", id);
+  await renderShipments();
+}
+
+// ===== 绠遍害鍘嗗彶 =====
+let labelModalBoxId = null;
+async function showLabelHistory(boxId) {
+  labelModalBoxId = boxId;
+  document.getElementById("labelNewInput").value = "";
+  const labels = await getBoxLabelHistory(boxId);
+  document.getElementById("labelHistoryList").innerHTML = labels.map(l =>
+    `<tr><td>${escHtml(l.label)}</td><td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : "-"}</td></tr>`
+  ).join("") || "<tr><td colspan=\"2\" style=\"color:#999;\">鏆傛棤璁板綍</td></tr>";
+  openModal("labelModal");
+}
+
+async function updateBoxLabel() {
+  const label = document.getElementById("labelNewInput").value.trim();
+  if (!label || !labelModalBoxId) return;
+  await saveBoxLabel(labelModalBoxId, label);
+  document.getElementById("labelNewInput").value = "";
+  const labels = await getBoxLabelHistory(labelModalBoxId);
+  document.getElementById("labelHistoryList").innerHTML = labels.map(l =>
+    `<tr><td>${escHtml(l.label)}</td><td>${l.timestamp ? new Date(l.timestamp).toLocaleString() : "-"}</td></tr>`
+  ).join("");
+  await renderShipments();
+}
+
+// ===== 鎬诲簱瀛樿〃 =====
+async function renderStockTable() {
+  const tbody = document.getElementById("stockTable").querySelector("tbody");
+  if (!currentStoreId) { tbody.innerHTML = ""; return; }
+  const filter = document.getElementById("stockStatusFilter").value;
+  const products = await getStoreProducts(currentStoreId);
+  let rows = [];
+  for (const p of products) {
+    let totalQty = 0;
+    const boxProducts = await dbGetByIndex("box_products", "productId", p.id);
+    for (const bp of boxProducts) {
+      const box = await dbGet("boxes", bp.boxId);
+      if (!box) continue;
+      if (filter !== "all" && box.status !== filter) continue;
+      if (box.status === "full") continue;
+      totalQty += (box.boxCount || 1) * (box.packingCount || 1);
+    }
+    const totalCost = totalQty * (p.cost + (p.headCost || 0));
+    rows.push({ p, totalQty, totalCost });
+  }
+  if (rows.length === 0) {
+    tbody.innerHTML = "<tr><td colspan=\"6\"><div class=\"empty-state\">鏃犳暟鎹?/div></td></tr>";
+  } else {
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td>${escHtml(r.p.productId||"")}</td>
+      <td>${escHtml(r.p.sku||"")}</td>
+      <td>${escHtml(r.p.name||"")}</td>
+      <td>${r.totalQty}</td>
+      <td>楼${r.totalCost.toFixed(2)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="showProductDetail(${r.p.id})">馃搳 璇︽儏</button></td>
+    </tr>`).join("");
+  }
+}
+
+// ===== 浜у搧搴撳瓨璇︽儏寮圭獥 =====
+async function showProductDetail(productId) {
+  const p = await dbGet("products", productId);
+  if (!p) return;
+  document.getElementById("stockDetailTitle").textContent = `${p.name} (${p.sku}) 鈥?搴撳瓨璇︽儏`;
+  const boxProducts = await dbGetByIndex("box_products", "productId", productId);
+  let html = "<table style=\"width:100%;font-size:12px;\"><thead><tr><th>鍑鸿揣鍗?/th><th>绠卞彿</th><th>鏁伴噺</th><th>鐘舵€?/th><th>鐗╂祦鍏徃</th><th>鏃ユ湡</th></tr></thead><tbody>";
+  let total = 0;
+  for (const bp of boxProducts) {
+    const box = await dbGet("boxes", bp.boxId);
+    if (!box) continue;
+    const shipment = await dbGet("shipments", box.shipmentId);
+    const qty = (box.boxCount || 1) * (box.packingCount || 1);
+    if (box.status !== "full") total += qty;
+    const scls = box.status === "logistics" ? "tag-logistics" : box.status === "arrived" ? "tag-arrived" : "tag-full";
+    const slbl = box.status === "logistics" ? "鐗╂祦涓? : box.status === "arrived" ? "宸插埌浠? : "Full璋冩嫧";
+    html += `<tr><td>#${box.shipmentId}</td><td>${escHtml(box.boxNumber||"")}</td><td>${qty}</td><td><span class="tag ${scls}">${slbl}</span></td><td>${escHtml(box.logisticsCompany||"")}</td><td>${shipment ? shipment.date : ""}</td></tr>`;
+  }
+  html += "</tbody></table>";
+  html += `<div class="summary-bar" style="margin-top:8px;"><span class="item"><span class="label">鎬诲簱瀛?</span> <span class="value">${total}</span></span></div>`;
+  // 鏈€杩戦攢閲?
+  const recent7 = await getRecentSales(productId, 7);
+  const recent30 = await getRecentSales(productId, 30);
+  const sum7 = recent7.reduce((a,b) => a + b.quantity, 0);
+  const sum30 = recent30.reduce((a,b) => a + b.quantity, 0);
+  html += `<div class="summary-bar" style="margin-top:4px;"><span class="item"><span class="label">杩?澶╅攢閲?</span> <span class="value">${sum7}</span></span><span class="item"><span class="label">杩?0澶╅攢閲?</span> <span class="value">${sum30}</span></span></div>`;
+  // 澶囪揣鎻愰啋
+  if (sum30 > 0 && total > 0) {
+    const dailyAvg = sum30 / 30;
+    const daysToEmpty = Math.floor(total / dailyAvg);
+    if (daysToEmpty < 30) html += `<div class="alert alert-warning">鈿狅笍 褰撳墠搴撳瓨鍙淮鎸佺害 ${daysToEmpty} 澶╋紙鏃ュ潎閿€閲?${dailyAvg.toFixed(1)}锛夛紝寤鸿澶囪揣</div>`;
+  }
+  document.getElementById("stockDetailBody").innerHTML = html;
+  openModal("stockDetailModal");
+}
+
+// ===== 宸ュ叿鍑芥暟 =====
+function openModal(id) { document.getElementById(id).classList.add("active"); }
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+
+async function searchBoxNumber() {
+  const term = document.getElementById("boxSearchInput").value.trim();
+  if (!term) return alert("璇疯緭鍏ヨ鏌ユ壘鐨勭鍙?);
+  if (!currentStoreId) return alert("璇峰厛閫夋嫨搴楅摵");
+  const shipments = (await dbGetAll("shipments")).filter(s => s.storeId === currentStoreId && !s.isTransfer);
+  let results = [];
+  async function getBoxProductNames(boxId) {
+    const bpList = await getBoxProducts(boxId);
+    const names = [];
+    for (const bp of bpList) {
+      const p = await dbGet("products", bp.productId);
+      if (p) names.push(p.name);
+    }
+    return names;
+  }
+  for (const s of shipments) {
+    const boxes = await getShipmentBoxes(s.id);
+    for (const b of boxes) {
+      if ((b.boxNumber && b.boxNumber.toLowerCase().includes(term.toLowerCase())) || (b.currentLabel && b.currentLabel.toLowerCase().includes(term.toLowerCase()))) {
+        const productNames = await getBoxProductNames(b.id);
+        const labels1 = await dbGetByIndex("box_labels", "boxId", b.id);
+        const labelHistory1 = labels1.sort((a,c) => (a.timestamp||"").localeCompare(c.timestamp||"")).map(l => l.label);
+        results.push({ shipment: s, box: b, productNames: productNames, labelHistory: labelHistory1 });
+      }
+    }
+  }
+  if (results.length === 0) {
+    const allLabels = await dbGetAll("box_labels");
+    const matchingLabelIds = allLabels.filter(l => l.label && l.label.toLowerCase().includes(term.toLowerCase())).map(l => l.boxId);
+    if (matchingLabelIds.length > 0) {
+      for (const s of shipments) {
+        const boxes = await getShipmentBoxes(s.id);
+        for (const b of boxes) {
+          if (matchingLabelIds.includes(b.id)) {
+            const productNames = await getBoxProductNames(b.id);
+            const labels2 = await dbGetByIndex("box_labels", "boxId", b.id);
+            const labelHistory2 = labels2.sort((a,c) => (a.timestamp||"").localeCompare(c.timestamp||"")).map(l => l.label);
+            results.push({ shipment: s, box: b, productNames: productNames, labelHistory: labelHistory2 });
+          }
+        }
+      }
+    }
+  }
+    // 閫氳繃 SKU / 浜у搧鍚嶇О鏌ユ壘
+  if (currentStoreId) {
+    const allProds = await getStoreProducts(currentStoreId);
+    const matchedProducts = allProds.filter(p =>
+      (p.sku && p.sku.toLowerCase().includes(term.toLowerCase())) ||
+      (p.name && p.name.toLowerCase().includes(term.toLowerCase()))
+    );
+    for (const mp of matchedProducts) {
+      const bpList = await getBoxProducts(mp.id);
+      for (const bp of bpList) {
+        const box = await dbGet("boxes", bp.boxId);
+        if (!box) continue;
+        // 妫€鏌ユ槸鍚﹀凡鍦ㄧ粨鏋滀腑锛堝幓閲嶏級
+        if (results.some(r => r.box.id === box.id)) continue;
+        const shipment = await dbGet("shipments", box.shipmentId);
+        if (!shipment || shipment.storeId !== currentStoreId) continue;
+        const productNames = [mp.name];
+        const labels = await dbGetByIndex("box_labels", "boxId", box.id);
+        const labelHistory = labels.sort((a,c) => (a.timestamp||"").localeCompare(c.timestamp||"")).map(l => l.label);
+        results.push({ shipment, box, productNames, labelHistory });
+      }
+    }
+  }
+if (results.length === 0) {
+    alert("鏈壘鍒板寘鍚鍙枫€? + term + "銆嶇殑绠卞瓙");
+    return;
+  }
+  window._searchResults = results;
+  document.getElementById("searchResultTitle").textContent = "鎵惧埌 " + results.length + " 涓尮閰嶇粨鏋?;
+  var rhtml = "<table style=\"width:100%;font-size:12px;\"><thead><tr>" +
+    "<th>浜у搧</th><th>绠卞彿</th><th>浜у搧鍚嶅瓧</th><th>绠卞敍</th><th>绠辨暟</th><th>瑁呯鏁?/th><th>鎬绘暟</th><th>鎿嶄綔</th>" +
+    "</tr></thead><tbody>";
+  for (var ri = 0; ri < results.length; ri++) {
+    var r = results[ri];
+    var totalQty = (r.box.boxCount||1) * (r.box.packingCount||1);
+    rhtml += "<tr>" +
+      "<td>" + escHtml(r.productNames.join(", ")) + "</td>" +
+      "<td><strong>" + escHtml(r.box.boxNumber||"") + "</strong></td>" + "<td>" + escHtml(r.productNames.join(", ")) + "</td>" +
+      "<td><a href=\"#\" onclick=\"closeModal(&quot;searchResultModal&quot;);showLabelHistory(" + r.box.id + ");return false;\">" + escHtml(r.box.currentLabel||"") + "</a>" + (r.labelHistory && r.labelHistory.length > 0 ? "<br><span style=\"font-size:11px;color:#999;\">" + escHtml(r.labelHistory.filter(function(l){return l !== r.box.currentLabel}).join(" 鈫?")) + "</span>" : "") + "</td>" +
+      "<td>" + (r.box.boxCount||1) + "</td>" +
+      "<td>" + (r.box.packingCount||1) + "</td>" +
+      "<td>" + totalQty + "</td>" +
+      "<td><button class=\"btn btn-outline btn-sm\" onclick=\"showSearchDetail(" + ri + ")\">璇︽儏</button></td>" +
+      "</tr>";
+  }
+  rhtml += "</tbody></table>";
+  rhtml += "<div id=\"searchDetailArea\" style=\"margin-top:12px;padding:12px;background:#f8f9fa;border-radius:6px;display:none;\"></div>";
+  document.getElementById("searchResultBody").innerHTML = rhtml;
+  openModal("searchResultModal");
+  if (results.length > 0) {
+    setTimeout(() => {
+      const shipmentEls = document.querySelectorAll('[id^="shipment-"]');
+      for (const el of shipmentEls) {
+        if (el.id === "shipment-" + results[0].shipment.id) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.style.background = "#fff9c4";
+          setTimeout(() => el.style.background = "", 3000);
+          break;
+        }
+      }
+    }, 100);
+  }
+}
+
+async function exportShipmentExcel(shipmentId) {
+  if (typeof ExcelJS === "undefined") { alert("ExcelJS搴撴湭鍔犺浇锛岃妫€鏌ョ綉缁滆繛鎺ュ悗鍒锋柊椤甸潰"); return; }
+  if (typeof TEMPLATE_BASE64 === "undefined") { alert("妯℃澘鏂囦欢鏈姞杞?); return; }
+  const shipment = await dbGet("shipments", shipmentId);
+  if (!shipment) return alert("鍑鸿揣鍗曚笉瀛樺湪");
+  const boxes = await getShipmentBoxes(shipmentId);
+  if (boxes.length === 0) return alert("璇ュ嚭璐у崟娌℃湁绠卞瓙");
+
+  // 鍔犺浇妯℃澘锛堢涓€琛屽畬鍏ㄤ繚鎸佷笉鍙橈級
+  const templateBytes = Uint8Array.from(atob(TEMPLATE_BASE64), c => c.charCodeAt(0));
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(templateBytes.buffer);
+  const ws = workbook.getWorksheet(1);
+
+  // 鎵惧埌宸叉湁鏁版嵁琛屾暟锛屼粠涓嬩竴琛屽紑濮嬪啓鍏?  let rowIdx = 2;
+  while (ws.getCell(rowIdx, 1).value) rowIdx++;
+
+  let seq = 1;
+  for (const b of boxes) {
+    let len = 0, wid = 0, ht = 0;
+    if (b.spec) {
+      const parts = b.spec.split(/[xX脳\*]/).map(x => parseFloat(x.trim()) || 0);
+      if (parts.length >= 1) len = parts[0];
+      if (parts.length >= 2) wid = parts[1];
+      if (parts.length >= 3) ht = parts[2];
+    }
+    const bpList = await getBoxProducts(b.id);
+    const products = [];
+    for (const bp of bpList) {
+      const p = await dbGet("products", bp.productId);
+      if (p) products.push(p);
+    }
+    const cnName = products.map(p => p.name).join(", ");
+    const enName = products.map(p => p.englishName || p.name).join(", ");
+    const material = products.map(p => p.material || "").filter(m => m).join(", ");
+    const images = products.map(p => p.image || "").filter(i => i);
+
+    ws.getCell(rowIdx, 3).value = b.boxNumber || "";       // C
+    ws.getCell(rowIdx, 15).value = b.boxCount || 1;         // O
+    ws.getCell(rowIdx, 16).value = b.boxCount > 1 ? "1-" + b.boxCount : String(seq); // P
+    ws.getCell(rowIdx, 17).value = b.weight || 0;            // Q
+    ws.getCell(rowIdx, 18).value = len;                      // R
+    ws.getCell(rowIdx, 19).value = wid;                      // S
+    ws.getCell(rowIdx, 20).value = ht;                       // T
+    ws.getCell(rowIdx, 21).value = enName;                   // U
+    ws.getCell(rowIdx, 22).value = cnName;                   // V
+    ws.getCell(rowIdx, 24).value = b.packingCount || 1;      // X
+    ws.getCell(rowIdx, 25).value = material;                 // Y
+
+    // 鍥剧墖
+    if (images.length > 0) {
+      const imgData = images[0];
+      const imgExt = imgData.startsWith("data:image/png") ? "png" : "jpeg";
+      try {
+        const imageId = workbook.addImage({
+          base64: imgData.replace(/^data:image\/\w+;base64,/, ""),
+          extension: imgExt,
+        });
+        ws.addImage(imageId, {
+          tl: { col: 29.5, row: rowIdx - 0.5 },
+          ext: { width: 80, height: 80 },
+        });
+      } catch(e) { console.warn("鍥剧墖澶辫触:", e); }
+    }
+    rowIdx++; seq++;
+  }
+
+  try {
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "鏆栭槼鏁扮爜-鐗ф磱_" + (shipment.date || "") + ".xlsx";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch(e) {
+    alert("瀵煎嚭澶辫触: " + e.message);
+  }
+}
+function showSearchDetail(index) {
+  var results = window._searchResults || [];
+  var r = results[index];
+  if (!r) return;
+  var totalCbm = ((r.box.cbmPerBox||0) * (r.box.boxCount||1)).toFixed(3);
+  var totalWt = ((r.box.weight||0) * (r.box.boxCount||1)).toFixed(1);
+  var totalQty = (r.box.boxCount||1) * (r.box.packingCount||1);
+  var statusLbl = r.box.status === "logistics" ? "鐗╂祦涓? : r.box.status === "arrived" ? "宸插埌浠? : "Full璋冩嫧";
+  var statusCls = r.box.status === "logistics" ? "tag-logistics" : r.box.status === "arrived" ? "tag-arrived" : "tag-full";
+  var dhtml = "<h4 style=\"margin:0 0 8px;\">馃摝 " + escHtml(r.box.boxNumber||"") + " 璇︽儏</h4>";
+  dhtml += "<table style=\"width:100%;font-size:12px;\"><tbody>" +
+    "<tr><td><strong>浜у搧</strong></td><td>" + escHtml(r.productNames.join(", ")) + "</td></tr>" +
+    "<tr><td><strong>鍑鸿揣鍗?/strong></td><td>#" + r.shipment.id + "</td></tr>" +
+    "<tr><td><strong>鏃ユ湡</strong></td><td>" + r.shipment.date + "</td></tr>" +
+    "<tr><td><strong>绠卞彿</strong></td><td>" + escHtml(r.box.boxNumber||"") + "</td></tr>" +
+    "<tr><td><strong>绠辨暟</strong></td><td>" + (r.box.boxCount||1) + "</td></tr>" +
+    "<tr><td><strong>瑁呯鏁?/strong></td><td>" + (r.box.packingCount||1) + "</td></tr>" +
+    "<tr><td><strong>鎬绘暟</strong></td><td>" + totalQty + "</td></tr>" +
+    "<tr><td><strong>绠辫</strong></td><td>" + escHtml(r.box.spec||"") + "</td></tr>" +
+    "<tr><td><strong>鍗曠鏂规暟</strong></td><td>" + (r.box.cbmPerBox||0).toFixed(3) + "</td></tr>" +
+    "<tr><td><strong>鎬绘柟鏁?/strong></td><td>" + totalCbm + "</td></tr>" +
+    "<tr><td><strong>鎬婚噸閲?/strong></td><td>" + totalWt + " kg</td></tr>" +
+    "<tr><td><strong>绠卞敍</strong></td><td>" + escHtml(r.box.currentLabel||"") + " <a href=\"#\" onclick=\"closeModal(&quot;searchResultModal&quot;);showLabelHistory(" + r.box.id + ");return false;\">馃摑</a>" + (r.labelHistory && r.labelHistory.length > 0 ? "<br><span style=\"font-size:11px;color:#999;\">鍘嗗彶: " + escHtml(r.labelHistory.filter(function(l){return l !== r.box.currentLabel}).join(" 鈫?")) + "</span>" : "") + "</td></tr>" +
+    "<tr><td><strong>鐘舵€?/strong></td><td><span class=\"tag " + statusCls + "\">" + statusLbl + "</span></td></tr>" +
+    "<tr><td><strong>鐗╂祦鍏徃</strong></td><td>" + escHtml(r.box.logisticsCompany||"") + "</td></tr>" +
+    "</tbody></table>";
+  var area = document.getElementById("searchDetailArea");
+  if (area) {
+    area.innerHTML = dhtml;
+    area.style.display = "block";
+  }
+}
+function switchTab(tabId) {
+  document.querySelectorAll('.sub-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+  var btns = document.querySelectorAll('.sub-tab');
+  for (var bi = 0; bi < btns.length; bi++) {
+    if (btns[bi].getAttribute('onclick').indexOf(tabId) >= 0) {
+      btns[bi].classList.add('active');
+    }
+  }
+  var el = document.getElementById(tabId);
+  if (el) el.classList.add('active');
+  if (tabId === 'tab-shipments') renderShipments();
+  if (tabId === 'tab-stock') renderStockTable();
+}
+function escHtml(s) { if (!s) return ""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;"); }
+document.addEventListener("click", function(e) {
+  if (e.target.classList.contains("modal-overlay") && e.target.classList.contains("active")) e.target.classList.remove("active");
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

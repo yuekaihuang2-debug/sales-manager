@@ -1,0 +1,284 @@
+﻿﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日销量</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.sales-table th, .sales-table td { border: 1px solid #eee; }
+.sales-table .col-date { min-width: 50px; text-align: center; font-size: 11px; }
+.sales-table .col-sku { min-width: 100px; }
+.sales-table .col-name { min-width: 120px; }
+.sales-table .col-total { min-width: 55px; text-align: center; font-weight: 600; }
+.sales-table td.cell-qty { text-align: center; font-size: 12px; cursor: pointer; }
+.sales-table td.cell-qty:hover { background: #e3f2fd; }
+.sales-table .row-product { cursor: pointer; }
+.sales-table .row-product:hover { background: #e3f2fd; }
+.sales-table .month-header { background: #e8eaf6; font-weight: 600; text-align: center; }
+.sales-table th.sticky-left { position: sticky; left: 0; z-index: 3; background: #f8f9fa; }
+.sales-table td.sticky-left { position: sticky; left: 0; z-index: 1; background: #fff; }
+#stockWarning { margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="navbar">
+  <span class="brand">📊 每日销量</span>
+  <a href="index.html">首页</a>
+  <a href="inventory.html">库存管理</a>
+  <a href="sales.html" class="active">每日销量</a>
+</div>
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <span>🏪 店铺选择</span>
+      <select id="storeSelect" class="form-control" style="width:auto;" onchange="switchStore()"></select>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span>📅 销量数据</span>
+      <button class="btn btn-primary btn-sm" onclick="showAddSales()">+ 录入销量</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleHiddenMonths()" id="toggleBtn">📆 显示全部月份</button>
+    </div>
+    <div class="card-body" id="salesContainer">
+      <div id="stockWarning"></div>
+      <div class="table-wrap" id="salesTableWrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 录入销量弹窗 -->
+<div class="modal-overlay" id="salesModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><span>录入每日销量</span><button class="close" onclick="closeModal(&quot;salesModal&quot;)">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>日期</label><input class="form-control" id="salesDate" type="date"></div>
+      <div class="form-group"><label>产品</label>
+        <select class="form-control" id="salesProductSelect"></select>
+      </div>
+      <div class="form-group"><label>销量数量</label><input class="form-control" id="salesQty" type="number" min="0" step="1" value="0"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal(&quot;salesModal&quot;)">取消</button>
+      <button class="btn btn-primary" onclick="saveSales()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 产品详情弹窗 -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:650px;">
+    <div class="modal-header"><span id="detailTitle">产品详情</span><button class="close" onclick="closeModal(&quot;detailModal&quot;)">&times;</button></div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal(&quot;detailModal&quot;)">关闭</button></div>
+  </div>
+</div>
+
+<script src="js/cloud.js"></script>
+<script src="js/db.js"></script>
+<script>
+let currentStoreId = null;
+let showAllMonths = false;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const stored = localStorage.getItem("lastStoreId");
+  await loadStores();
+  if (stored) { currentStoreId = parseInt(stored); document.getElementById("storeSelect").value = currentStoreId; }
+  if (!currentStoreId) {
+    const stores = await dbGetAll("stores");
+    if (stores.length > 0) { currentStoreId = stores[0].id; document.getElementById("storeSelect").value = currentStoreId; }
+  }
+  syncNewProducts();
+  await renderSalesTable();
+});
+
+async function loadStores() {
+  const stores = await dbGetAll("stores");
+  const sel = document.getElementById("storeSelect");
+  sel.innerHTML = stores.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join("");
+  if (stores.length === 0) sel.innerHTML = '<option value="">-- 请先创建店铺 --</option>';
+}
+
+async function switchStore() {
+  currentStoreId = parseInt(document.getElementById("storeSelect").value);
+  if (!currentStoreId) return;
+  localStorage.setItem("lastStoreId", currentStoreId);
+  syncNewProducts();
+  await renderSalesTable();
+}
+
+async function syncNewProducts() {
+  if (!currentStoreId) return;
+  const raw = localStorage.getItem("newProductsForSales");
+  if (!raw) return;
+  localStorage.removeItem("newProductsForSales");
+  await renderSalesTable();
+}
+
+async function renderSalesTable() {
+  if (!currentStoreId) {
+    document.getElementById("salesTableWrap").innerHTML = '<div class="empty-state">请先选择店铺</div>';
+    return;
+  }
+  const products = await getStoreProducts(currentStoreId);
+  if (products.length === 0) {
+    document.getElementById("salesTableWrap").innerHTML = '<div class="empty-state"><div class="icon">📊</div>暂无产品，请在库存管理中先添加产品</div>';
+    document.getElementById("stockWarning").innerHTML = "";
+    return;
+  }
+  const allSales = await dbGetAll("daily_sales");
+  const dateSet = new Set();
+  const salesMap = {};
+  for (const s of allSales) {
+    const key = s.productId + "|" + s.date;
+    salesMap[key] = (salesMap[key] || 0) + s.quantity;
+    dateSet.add(s.date);
+  }
+  const dates = Array.from(dateSet).sort();
+  const monthGroups = {};
+  for (const d of dates) {
+    const m = d.substring(0, 7);
+    if (!monthGroups[m]) monthGroups[m] = [];
+    monthGroups[m].push(d);
+  }
+  const months = Object.keys(monthGroups).sort().reverse();
+  const visibleMonths = showAllMonths ? months : months.slice(0, 2);
+  const visibleDates = [];
+  for (const m of visibleMonths) {
+    for (const d of monthGroups[m]) visibleDates.push(d);
+  }
+  const hiddenCount = dates.length - visibleDates.length;
+
+  let html = '<table class="sales-table" style="font-size:12px;">';
+  html += '<thead><tr><th class="sticky-left" style="min-width:180px;">产品</th>';
+  for (const m of visibleMonths) {
+    const days = monthGroups[m];
+    html += '<th class="month-header" colspan="' + days.length + '">' + m + '</th>';
+  }
+  if (hiddenCount > 0) html += '<th class="month-header">+' + hiddenCount + '天</th>';
+  html += '<th style="min-width:50px;">合计</th></tr>';
+  html += '<tr><th class="sticky-left">SKU / 名称</th>';
+  for (const d of visibleDates) {
+    html += '<th class="col-date">' + d.substring(8, 10) + '</th>';
+  }
+  if (hiddenCount > 0) html += '<th></th>';
+  html += '<th style="text-align:center;">总量</th></tr></thead><tbody>';
+
+  for (const p of products) {
+    let total = 0;
+    html += '<tr class="row-product" onclick="showProductDetail(' + p.id + ')">';
+    html += '<td class="sticky-left"><strong>' + escHtml(p.sku||"") + '</strong><br><span style="font-size:11px;color:#666;">' + escHtml(p.name||"") + '</span></td>';
+    for (const d of visibleDates) {
+      const qty = salesMap[p.id + "|" + d] || 0;
+      total += qty;
+      html += '<td class="cell-qty">' + (qty || "") + '</td>';
+    }
+    if (hiddenCount > 0) html += '<td></td>';
+    html += '<td class="col-total">' + total + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  document.getElementById("salesTableWrap").innerHTML = html;
+  document.getElementById("toggleBtn").textContent = showAllMonths ? "📆 只显示近2个月" : "📆 显示全部月份";
+  await renderStockWarnings(products);
+}
+
+async function renderStockWarnings(products) {
+  const now = new Date();
+  const start = new Date(now); start.setDate(start.getDate() - 30);
+  const startStr = start.toISOString().substring(0, 10);
+  const endStr = now.toISOString().substring(0, 10);
+  let warnings = [];
+  for (const p of products) {
+    const stock = await getProductStock(p.id);
+    if (stock <= 0) continue;
+    const recentSales = await dbGetByRange("daily_sales", "date", startStr, endStr);
+    const productSales = recentSales.filter(s => s.productId === p.id);
+    const totalSales30 = productSales.reduce((a,b) => a + b.quantity, 0);
+    if (totalSales30 <= 0) continue;
+    const dailyAvg = totalSales30 / 30;
+    const daysToEmpty = Math.floor(stock / dailyAvg);
+    if (daysToEmpty < 30) {
+      warnings.push({ name: p.name, sku: p.sku, days: daysToEmpty, avg: dailyAvg, stock: stock });
+    }
+  }
+  if (warnings.length > 0) {
+    const whtml = warnings.map(w =>
+      '<div class="alert alert-warning">⚠️ <strong>' + escHtml(w.name) + '</strong> (' + escHtml(w.sku) + ') 库存 ' + w.stock + '，日均销量 ' + w.avg.toFixed(1) + '，可维持约 ' + w.days + ' 天，建议备货</div>'
+    ).join("");
+    document.getElementById("stockWarning").innerHTML = whtml;
+  } else {
+    document.getElementById("stockWarning").innerHTML = "";
+  }
+}
+
+function toggleHiddenMonths() { showAllMonths = !showAllMonths; renderSalesTable(); }
+
+function showAddSales() {
+  if (!currentStoreId) return alert("请先选择店铺");
+  document.getElementById("salesDate").value = todayStr();
+  document.getElementById("salesQty").value = "0";
+  getStoreProducts(currentStoreId).then(products => {
+    const sel = document.getElementById("salesProductSelect");
+    sel.innerHTML = products.map(p => '<option value="' + p.id + '">' + p.name + ' (' + p.sku + ')</option>').join("");
+  });
+  openModal("salesModal");
+}
+
+async function saveSales() {
+  const date = document.getElementById("salesDate").value;
+  const productId = parseInt(document.getElementById("salesProductSelect").value);
+  const qty = parseInt(document.getElementById("salesQty").value) || 0;
+  if (!date || !productId) return alert("请填写完整");
+  if (qty <= 0) return alert("销量必须大于0");
+  const existing = await dbGetByCompoundIndex("daily_sales", "date_product", [date, productId]);
+  if (existing.length > 0) {
+    existing[0].quantity = qty;
+    await dbPut("daily_sales", existing[0]);
+  } else {
+    await dbAdd("daily_sales", { date: date, productId: productId, quantity: qty });
+  }
+  closeModal("salesModal");
+  await renderSalesTable();
+}
+
+async function showProductDetail(productId) {
+  const p = await dbGet("products", productId);
+  if (!p) return;
+  document.getElementById("detailTitle").textContent = p.name + " (" + p.sku + ") — 销量与库存";
+  const stock = await getProductStock(productId);
+  const recent7 = await getRecentSales(productId, 7);
+  const recent30 = await getRecentSales(productId, 30);
+  const sum7 = recent7.reduce((a,b) => a + b.quantity, 0);
+  const sum30 = recent30.reduce((a,b) => a + b.quantity, 0);
+  const sorted30 = recent30.sort((a,b) => a.date.localeCompare(b.date));
+  let dhtml = '<div class="summary-bar"><span class="item"><span class="label">当前库存:</span> <span class="value">' + stock + '</span></span>';
+  dhtml += '<span class="item"><span class="label">近7天销量:</span> <span class="value">' + sum7 + '</span></span>';
+  dhtml += '<span class="item"><span class="label">近30天销量:</span> <span class="value">' + sum30 + '</span></span></div>';
+  if (sum30 > 0 && stock > 0) {
+    const dailyAvg = sum30 / 30;
+    const daysToEmpty = Math.floor(stock / dailyAvg);
+    if (daysToEmpty < 30) {
+      dhtml += '<div class="alert alert-warning">⚠️ 当前库存可维持约 ' + daysToEmpty + ' 天（日均销量 ' + dailyAvg.toFixed(1) + '），建议备货</div>';
+    }
+  }
+  dhtml += '<h4 style="margin:10px 0 6px;font-size:13px;">近30天销量明细</h4>';
+  dhtml += '<table style="width:100%;font-size:12px;"><thead><tr><th>日期</th><th>销量</th></tr></thead><tbody>';
+  for (const s of sorted30) {
+    dhtml += '<tr><td>' + s.date + '</td><td>' + s.quantity + '</td></tr>';
+  }
+  dhtml += '</tbody></table>';
+  document.getElementById("detailBody").innerHTML = dhtml;
+  openModal("detailModal");
+}
+
+function openModal(id) { document.getElementById(id).classList.add("active"); }
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+function escHtml(s) { if (!s) return ""; return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+document.addEventListener("click", function(e) {
+  if (e.target.classList.contains("modal-overlay") && e.target.classList.contains("active")) e.target.classList.remove("active");
+});
+</script>
+</body>
+</html>
+
